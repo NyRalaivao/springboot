@@ -1,6 +1,8 @@
 package com.example.query.controller;
 
 import com.example.query.repository.Student;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -11,46 +13,78 @@ public class StudentController {
 
     private final List<Student> students = new ArrayList<>();
 
-
     @GetMapping("/welcome")
-    public String welcome(@RequestParam String name) {
-        return "Welcome " + name;
+    public ResponseEntity<String> welcome(@RequestParam(required = false) String name) {
+
+        if (name == null || name.isEmpty()) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body("Parameter 'name' is required");
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body("Welcome " + name);
     }
 
     @PostMapping("/students")
-    public String addStudents(@RequestBody List<Student> newStudents) {
+    public ResponseEntity<?> addStudents(@RequestBody List<Student> newStudents) {
 
-        students.addAll(newStudents);
+        try {
+            students.addAll(newStudents);
 
-        StringBuilder result = new StringBuilder();
+            return ResponseEntity
+                    .status(HttpStatus.CREATED)
+                    .body(students);
 
-        for (Student s : students) {
-            result.append(s.getFirstName())
-                    .append(" ")
-                    .append(s.getLastName())
-                    .append("\n");
+        } catch (Exception e) {
+
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erreur serveur : " + e.getMessage());
         }
-
-        return result.toString();
     }
 
-
     @GetMapping("/students")
-    public String getStudents(@RequestHeader(value = "Accept", required = false) String accept) {
+    public ResponseEntity<?> getStudents(@RequestHeader(value = "Accept", required = false) String accept) {
 
-        StringBuilder result = new StringBuilder();
+        try {
+            if (accept == null) {
+                return ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .body("Header 'Accept' manquant");
+            }
 
-        for (Student s : students) {
-            result.append(s.getFirstName())
-                    .append(" ")
-                    .append(s.getLastName())
-                    .append("\n");
+            if (!accept.equals("application/json") && !accept.equals("text/plain")) {
+                return ResponseEntity
+                        .status(HttpStatus.NOT_IMPLEMENTED)
+                        .body("Format non supporté");
+            }
+
+            if (accept.equals("application/json")) {
+                return ResponseEntity
+                        .status(HttpStatus.OK)
+                        .body(students);
+            }
+
+            StringBuilder result = new StringBuilder();
+            for (Student s : students) {
+                result.append(s.getFirstName())
+                        .append(" ")
+                        .append(s.getLastName())
+                        .append("\n");
+            }
+
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .header("Content-Type", "text/plain")
+                    .body(result.toString());
+
+        } catch (Exception e) {
+
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erreur serveur : " + e.getMessage());
         }
-
-        if (accept != null && accept.equals("application/json")) {
-            return "{ \"students\": \"" + result.toString().trim() + "\" }";
-        }
-
-        return result.toString();
     }
 }
