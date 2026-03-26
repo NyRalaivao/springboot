@@ -1,4 +1,4 @@
-package com.example.query.repository;
+package com.example.query.model;
 
 public class Student {
 
